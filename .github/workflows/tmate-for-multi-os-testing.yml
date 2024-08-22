@@ -1,0 +1,68 @@
+name: OS Testing with Configurable tmate
+
+on:
+  workflow_dispatch:
+    inputs:
+      os:
+        type: choice
+        description: 'Select the operating system'
+        options: 
+        - ubuntu-latest
+        - macos-latest
+        default: 'ubuntu-latest'
+      debug_enabled:
+        type: boolean
+        description: 'Enable tmate debugging session'
+        required: false
+        default: true
+      tmate_timeout:
+        type: choice
+        description: 'tmate session timeout'
+        options:
+        - 1h
+        - 6h
+        - 1d
+        - 7d
+        default: '1h'
+
+jobs:
+  test:
+    name: ${{ (github.event.inputs.os == 'macos-latest' && 'macOS' || 'Ubuntu') }} OS Testing
+    runs-on: ${{ github.event.inputs.os }}
+    
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Print OS info
+      run: |
+        echo "Running on ${{ github.event.inputs.os }}"
+        echo "Detailed OS Information:"
+        
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          echo "OS: Ubuntu"
+          uname -a
+          lsb_release -a
+          cat /etc/os-release
+        elif [ "$RUNNER_OS" == "macOS" ]; then
+          echo "OS: macOS"
+          sw_vers
+          uname -a
+        else
+          echo "Unexpected OS"
+          uname -a
+        fi
+
+    # Add your test steps here
+    - name: Run tests
+      run: |
+        echo "Add your test commands here"
+        # Add your actual test commands here
+
+    # Optional: Add more steps as needed for your specific testing requirements
+
+    - name: Setup tmate session
+      if: ${{ github.event.inputs.debug_enabled == 'true' }}
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
+        timeout-minutes: ${{ fromJSON('{"1h":60, "6h":360, "1d":1440, "7d":10080}')[github.event.inputs.tmate_timeout] }}
